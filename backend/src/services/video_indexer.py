@@ -1,6 +1,8 @@
 # CONNECTOR: PYTHON AND AZURE VIDEO INDEXER
 
 import os
+
+os.environ["PATH"] += r";C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin"
 import time
 import logging
 import requests
