@@ -1,0 +1,23 @@
+{
+  "session_id": "c97196d4-76d9-40bb-a056-2ff331a6caf4",
+  "video_id": "vid_c97196d4",
+  "status": "FAIL",
+  "final_report": "The advertisement contains critical violations related to misleading claims about product invisibility, potential misuse of a registered trademark, and lack of clarity regarding the professional credentials of the spokesperson. Immediate corrective actions are recommended.",
+  "compliance_results": [
+    {
+      "category": "Claim Validation",
+      "severity": "CRITICAL",
+      "description": "The claim 'Sunscreen you can't see' could be misleading as it implies invisibility, which may not be scientifically substantiated or adequately clarified in the advertisement."
+    },
+    {
+      "category": "Trademark Misuse",
+      "severity": "HIGH",
+      "description": "The phrase 'You can't see me' is a registered trademark associated with John Cena and may have been used without proper authorization or licensing in the context of promoting Neutrogena Ultra Sheer sunscreen."
+    },
+    {
+      "category": "Professional Representation",
+      "severity": "MODERATE",
+      "description": "The video features a person claiming to be 'Doctor Nira,' but there is no verification of their credentials or relevance to dermatology, which could mislead viewers aboutthe authority of the endorsement."
+    }
+  ]
+}
