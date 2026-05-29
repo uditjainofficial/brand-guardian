@@ -161,9 +161,10 @@ Runs full pipeline:
 ## 📸 Sample Output
 
 * Structured JSON violations
+![alt text](image-1.png)
 * PASS / FAIL status
 * AI-generated summary
-
+![alt text](image.png)
 ---
 
 ## 💡 Key Learnings
