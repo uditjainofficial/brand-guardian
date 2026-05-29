@@ -57,4 +57,9 @@ dependencies = [
     # Image Utilities
     "numpy>=1.26.4",
     "pillow>=10.3.0",
+
+
+    # Local Retrieval
+    "sentence-transformers>=3.0.1",
+    "qdrant-client>=1.9.1",
 ]

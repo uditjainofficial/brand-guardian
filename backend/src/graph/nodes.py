@@ -3,6 +3,10 @@ import logging
 
 from typing import Dict, Any
 
+from backend.src.services.retrieval.local_retrieval import (
+    LocalRetrievalService
+)
+
 # =========================================================
 # STATE SCHEMA
 # =========================================================
@@ -238,9 +242,44 @@ def audit_content_node(
     It now depends on an abstract retrieval service.
     """
 
-    retrieval_service = (
-        AzureRetrievalService()
-    )
+    """
+    Select retrieval provider.
+
+    Supported Providers:
+
+    azure:
+        Azure AI Search
+        + Azure Embeddings
+
+    local:
+        Qdrant
+        + Sentence Transformers
+    """
+
+    retrieval_provider = os.getenv(
+        "RETRIEVAL_PROVIDER",
+        "local"
+    ).lower()
+
+    if retrieval_provider == "azure":
+
+        logger.info(
+            "[Retrieval] Using Azure Provider"
+        )
+
+        retrieval_service = (
+            AzureRetrievalService()
+        )
+
+    else:
+
+        logger.info(
+            "[Retrieval] Using Local Provider"
+        )
+
+        retrieval_service = (
+            LocalRetrievalService()
+        )
 
     # =====================================================
     # BUILD RETRIEVAL QUERY
