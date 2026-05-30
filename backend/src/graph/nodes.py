@@ -3,6 +3,10 @@ import logging
 
 from typing import Dict, Any
 
+from backend.src.services.llm.groq_llm import (
+    GroqLLMService
+)
+
 from backend.src.services.retrieval.local_retrieval import (
     LocalRetrievalService
 )
@@ -345,7 +349,42 @@ def audit_content_node(
     It now depends on an abstract LLM service.
     """
 
-    llm_service = AzureLLMService()
+    """
+    Select LLM provider.
+
+    Supported Providers:
+
+    azure:
+        Azure OpenAI
+
+    groq:
+        Groq API
+    """
+
+    llm_provider = os.getenv(
+        "LLM_PROVIDER",
+        "groq"
+    ).lower()
+
+    if llm_provider == "azure":
+
+        logger.info(
+            "[LLM] Using Azure Provider"
+        )
+
+        llm_service = (
+            AzureLLMService()
+        )
+
+    else:
+
+        logger.info(
+            "[LLM] Using Groq Provider"
+        )
+
+        llm_service = (
+            GroqLLMService()
+        )
 
     # =====================================================
     # EXECUTE COMPLIANCE REASONING
