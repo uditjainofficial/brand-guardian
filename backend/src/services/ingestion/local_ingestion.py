@@ -64,14 +64,10 @@ class LocalIngestionService(BaseIngestionService):
         Initialize ingestion components.
         """
 
-        """
-        Reuse existing stable YouTube downloader.
-        """
+        # Reuse existing stable YouTube downloader.
         self.video_downloader = VideoIndexerService()
 
-        """
-        Local AI inference engines.
-        """
+        # Local AI inference engines.
         self.transcriber = WhisperTranscriber()
 
         self.frame_extractor = FrameExtractor()
@@ -147,23 +143,13 @@ class LocalIngestionService(BaseIngestionService):
                 frame_paths
             )
 
-            # =================================================
-            # STEP 5 — CLEANUP
-            # =================================================
-
-            if os.path.exists(local_path):
-                os.remove(local_path)
-
-            if os.path.exists(frame_dir):
-                shutil.rmtree(frame_dir)
-
-            # =================================================
-            # STEP 6 — NORMALIZED OUTPUT
-            # =================================================
-
             logger.info(
                 "[Local Ingestion] Complete"
             )
+
+            # =================================================
+            # STEP 5 — NORMALIZED OUTPUT
+            # =================================================
 
             return {
                 "transcript": transcript,
@@ -182,18 +168,6 @@ class LocalIngestionService(BaseIngestionService):
                 f"Local Ingestion Failed: {e}"
             )
 
-            """
-            Prevent temp artifact accumulation.
-            """
-            if os.path.exists(local_video_path):
-                os.remove(local_video_path)
-
-            if os.path.exists(frame_dir):
-                shutil.rmtree(
-                    frame_dir,
-                    ignore_errors=True
-                )
-
             return {
                 "errors": [str(e)],
                 "final_status": "FAIL",
@@ -201,3 +175,48 @@ class LocalIngestionService(BaseIngestionService):
                 "ocr_text": [],
                 "video_metadata": {}
             }
+
+        finally:
+
+            # =================================================
+            # GUARANTEED CLEANUP
+            # =================================================
+            #
+            # Runs on:
+            # - success
+            # - exception
+            # - early return
+            #
+            # Prevents accumulation of:
+            # - temp_audit_video.mp4
+            # - extracted frames
+            #
+            # =================================================
+
+            try:
+
+                if os.path.exists(local_video_path):
+
+                    logger.info(
+                        "[Cleanup] Removing temporary video"
+                    )
+
+                    os.remove(local_video_path)
+
+                if os.path.exists(frame_dir):
+
+                    logger.info(
+                        "[Cleanup] Removing temporary frames"
+                    )
+
+                    shutil.rmtree(
+                        frame_dir,
+                        ignore_errors=True
+                    )
+
+            except Exception as cleanup_error:
+
+                logger.warning(
+                    f"[Cleanup] Failed: "
+                    f"{cleanup_error}"
+                )
