@@ -4,26 +4,17 @@ Groq LLM Provider
 PURPOSE:
 Provides compliance auditing using Groq.
 
-WHY THIS EXISTS:
-Allows Brand Guardian to run without
-Azure OpenAI.
-
-Current Model:
-- llama-3.3-70b-versatile
-
-Future Models:
-- openai/gpt-oss-120b
-- deepseek-r1-distill-llama-70b
-- future Groq releases
+ARCHITECTURE BENEFITS:
+- provider independence
+- structured JSON output
+- retry protection
+- robust response parsing
 """
 
 import json
 import logging
 import re
-
-from dotenv import load_dotenv
-
-load_dotenv()
+import time
 
 from typing import Dict, Any
 
@@ -49,15 +40,67 @@ class GroqLLMService(
     Groq implementation of the LLM contract.
     """
 
+    MAX_RETRIES = 3
+
     def __init__(self):
-        """
-        Initialize Groq chat model.
-        """
 
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             temperature=0.0
         )
+
+    def _extract_json(
+        self,
+        content: str
+    ) -> Dict[str, Any]:
+        """
+        Extract JSON from LLM response.
+
+        Handles:
+
+        ```json
+        {...}
+        ```
+
+        or
+
+        Here's my analysis:
+
+        {...}
+        """
+
+        if "```" in content:
+
+            match = re.search(
+                r"```(?:json)?(.*?)```",
+                content,
+                re.DOTALL
+            )
+
+            if match:
+                content = match.group(1)
+
+        try:
+            return json.loads(
+                content.strip()
+            )
+
+        except Exception:
+
+            match = re.search(
+                r"\{.*\}",
+                content,
+                re.DOTALL
+            )
+
+            if match:
+                return json.loads(
+                    match.group(0)
+                )
+
+            raise ValueError(
+                "No valid JSON found in response."
+            )
 
     def audit_content(
         self,
@@ -85,68 +128,91 @@ class GroqLLMService(
             )
         )
 
-        try:
+        response = None
 
-            response = self.llm.invoke([
-                (
-                    "system",
-                    system_prompt
-                ),
-                (
-                    "human",
-                    user_prompt
-                )
-            ])
+        for attempt in range(
+            1,
+            self.MAX_RETRIES + 1
+        ):
 
-            content = response.content
+            try:
 
-            if "```" in content:
-
-                match = re.search(
-                    r"```(?:json)?(.*?)```",
-                    content,
-                    re.DOTALL
+                logger.info(
+                    f"[Groq] Attempt "
+                    f"{attempt}/{self.MAX_RETRIES}"
                 )
 
-                if match:
-                    content = match.group(1)
+                response = self.llm.invoke([
+                    (
+                        "system",
+                        system_prompt
+                    ),
+                    (
+                        "human",
+                        user_prompt
+                    )
+                ])
 
-            audit_data = json.loads(
-                content.strip()
-            )
-
-            return {
-                "compliance_results":
-                audit_data.get(
-                    "compliance_results",
-                    []
-                ),
-
-                "final_status":
-                audit_data.get(
-                    "status",
-                    "FAIL"
-                ),
-
-                "final_report":
-                audit_data.get(
-                    "final_report",
-                    "No report generated."
+                audit_data = (
+                    self._extract_json(
+                        response.content
+                    )
                 )
-            }
 
-        except Exception as e:
+                return {
+                    "compliance_results":
+                    audit_data.get(
+                        "compliance_results",
+                        []
+                    ),
 
-            logger.error(
-                f"Groq Audit Failure: {str(e)}"
-            )
+                    "final_status":
+                    audit_data.get(
+                        "status",
+                        "FAIL"
+                    ),
 
-            logger.error(
-                f"Raw LLM Response: "
-                f"{response.content if 'response' in locals() else 'None'}"
-            )
+                    "final_report":
+                    audit_data.get(
+                        "final_report",
+                        "No report generated."
+                    )
+                }
 
-            return {
-                "errors": [str(e)],
-                "final_status": "FAIL"
-            }
+            except Exception as e:
+
+                logger.warning(
+                    f"[Groq] Attempt "
+                    f"{attempt} failed: {e}"
+                )
+
+                if attempt < self.MAX_RETRIES:
+
+                    wait_time = (
+                        2 ** attempt
+                    )
+
+                    logger.info(
+                        f"[Groq] Retrying in "
+                        f"{wait_time}s..."
+                    )
+
+                    time.sleep(
+                        wait_time
+                    )
+
+                else:
+
+                    logger.error(
+                        "[Groq] Exhausted retries"
+                    )
+
+                    logger.error(
+                        f"Raw Response: "
+                        f"{response.content if response else 'None'}"
+                    )
+
+                    return {
+                        "errors": [str(e)],
+                        "final_status": "FAIL"
+                    }

@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from backend.src.services.llm.groq_llm import (
     GroqLLMService
 )
