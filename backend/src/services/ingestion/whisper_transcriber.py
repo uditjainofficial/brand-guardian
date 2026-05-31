@@ -14,6 +14,10 @@ ARCHITECTURE BENEFITS:
 - local execution
 - CPU-friendly inference
 - modular ingestion pipeline
+
+PERFORMANCE:
+The Whisper model is loaded once and reused
+across all requests using a singleton pattern.
 """
 
 import logging
@@ -24,6 +28,43 @@ from faster_whisper import WhisperModel
 logger = logging.getLogger("whisper-transcriber")
 
 
+"""
+Global singleton model instance.
+
+This prevents the model from being loaded
+on every audit request.
+"""
+_whisper_model = None
+
+
+def get_whisper_model():
+    """
+    Load Whisper model once.
+
+    Subsequent calls return the same instance.
+    """
+
+    global _whisper_model
+
+    if _whisper_model is None:
+
+        logger.info(
+            "[Whisper] Loading Faster-Whisper model..."
+        )
+
+        _whisper_model = WhisperModel(
+            model_size_or_path="base",
+            device="cpu",
+            compute_type="int8"
+        )
+
+        logger.info(
+            "[Whisper] Model loaded successfully"
+        )
+
+    return _whisper_model
+
+
 class WhisperTranscriber:
     """
     Local Faster-Whisper transcription engine.
@@ -31,34 +72,10 @@ class WhisperTranscriber:
 
     def __init__(self):
         """
-        Initialize Whisper model.
-
-        MODEL CHOICE:
-        - 'base' gives good balance between:
-            accuracy
-            speed
-            memory usage
-
-        CPU EXECUTION:
-        - compute_type='int8'
-        reduces memory usage significantly.
+        Reuse existing model instance.
         """
 
-        logger.info(
-            "[Whisper] Loading Faster-Whisper model..."
-        )
-
-        self.model = WhisperModel(
-            model_size_or_path="base",
-
-            device="cpu",
-
-            compute_type="int8"
-        )
-
-        logger.info(
-            "[Whisper] Model loaded successfully"
-        )
+        self.model = get_whisper_model()
 
     def transcribe(
         self,
@@ -83,7 +100,6 @@ class WhisperTranscriber:
 
         segments, info = self.model.transcribe(
             video_path,
-
             beam_size=5
         )
 

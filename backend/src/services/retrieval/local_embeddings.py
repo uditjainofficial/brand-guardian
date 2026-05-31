@@ -13,16 +13,62 @@ ARCHITECTURE BENEFITS:
 - local execution
 - provider independence
 - reusable embedding layer
+
+PERFORMANCE:
+The embedding model is loaded once and
+reused across all requests.
 """
 
 import logging
 
 from typing import List
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import (
+    SentenceTransformer
+)
 
 
-logger = logging.getLogger("local-embeddings")
+logger = logging.getLogger(
+    "local-embeddings"
+)
+
+
+"""
+Global singleton embedding model.
+
+This prevents loading the model
+on every audit request.
+"""
+_embedding_model = None
+
+
+def get_embedding_model():
+    """
+    Load embedding model once.
+
+    Subsequent calls reuse the
+    same model instance.
+    """
+
+    global _embedding_model
+
+    if _embedding_model is None:
+
+        logger.info(
+            "[Embeddings] Loading local model..."
+        )
+
+        _embedding_model = (
+            SentenceTransformer(
+                "all-MiniLM-L6-v2"
+            )
+        )
+
+        logger.info(
+            "[Embeddings] Model ready"
+        )
+
+    return _embedding_model
 
 
 class LocalEmbeddingService:
@@ -40,16 +86,8 @@ class LocalEmbeddingService:
 
     def __init__(self):
 
-        logger.info(
-            "[Embeddings] Loading local model..."
-        )
-
-        self.model = SentenceTransformer(
-            "all-MiniLM-L6-v2"
-        )
-
-        logger.info(
-            "[Embeddings] Model ready"
+        self.model = (
+            get_embedding_model()
         )
 
     def embed_query(
