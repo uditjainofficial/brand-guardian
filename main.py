@@ -14,11 +14,16 @@ import json      # Handles JSON data formatting (converts Python dicts to readab
 import logging   # Records what happens during execution (like a flight recorder)
 from pprint import pprint  # Pretty-prints data structures (unused here, but available)
 
+from backend.src.utils.health_check import (
+    run_health_checks
+)
 
 # Load environment variables from .env file
 # This reads API keys, database credentials, etc. without hardcoding them
 from dotenv import load_dotenv
 load_dotenv(override=True)  # override=True means .env values take priority over system variables
+
+run_health_checks()
 
 # Import the main workflow graph (the "brain" of your compliance system)
 from backend.src.graph.workflow import app
