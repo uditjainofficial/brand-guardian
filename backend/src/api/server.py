@@ -1,4 +1,4 @@
-
+from fastapi.middleware.cors import CORSMiddleware
 
 import uuid        # Generate unique session IDs
 import logging     # Application logging
@@ -51,6 +51,15 @@ app = FastAPI(
     title="Brand Guardian AI API",
     description="API for auditing video content against brand compliance rules.",
     version="1.0.0"
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 # FastAPI automatically creates:
 # - Interactive docs at http://localhost:8000/docs
