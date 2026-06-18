@@ -3,45 +3,12 @@ import logging
 
 from typing import Dict, Any
 
-from backend.src.services.llm.groq_llm import (
-    GroqLLMService
-)
-
-from backend.src.services.retrieval.local_retrieval import (
-    LocalRetrievalService
-)
-
 # =========================================================
 # STATE SCHEMA
 # =========================================================
 from backend.src.graph.state import (
     VideoAuditState,
     ComplianceIssue
-)
-
-# =========================================================
-# INGESTION PROVIDERS
-# =========================================================
-from backend.src.services.ingestion.azure_ingestion import (
-    AzureIngestionService
-)
-
-from backend.src.services.ingestion.local_ingestion import (
-    LocalIngestionService
-)
-
-# =========================================================
-# RETRIEVAL PROVIDERS
-# =========================================================
-from backend.src.services.retrieval.azure_retrieval import (
-    AzureRetrievalService
-)
-
-# =========================================================
-# LLM PROVIDERS
-# =========================================================
-from backend.src.services.llm.azure_llm import (
-    AzureLLMService
 )
 
 # =========================================================
@@ -89,25 +56,6 @@ def index_video_node(
 
     try:
 
-        # =================================================
-        # PROVIDER ROUTING
-        # =================================================
-        """
-        Infrastructure provider selection.
-
-        IMPORTANT:
-        Orchestration logic should NOT directly
-        hardcode infrastructure dependencies.
-
-        Provider routing allows:
-        - local execution
-        - Azure execution
-        - future GPU providers
-        - future cloud providers
-
-        WITHOUT changing orchestration.
-        """
-
         ingestion_provider = os.getenv(
             "INGESTION_PROVIDER",
             "local"
@@ -117,6 +65,10 @@ def index_video_node(
         # LOCAL MULTIMODAL INGESTION
         # =============================================
         if ingestion_provider == "local":
+
+            from backend.src.services.ingestion.local_ingestion import (
+                LocalIngestionService
+            )
 
             logger.info(
                 "[Indexer] Using Local "
@@ -131,6 +83,10 @@ def index_video_node(
         # AZURE VIDEO INDEXER
         # =============================================
         elif ingestion_provider == "azure":
+
+            from backend.src.services.ingestion.azure_ingestion import (
+                AzureIngestionService
+            )
 
             logger.info(
                 "[Indexer] Using Azure "
@@ -190,17 +146,6 @@ def audit_content_node(
     """
     Performs Retrieval-Augmented Generation (RAG)
     to audit video content against compliance rules.
-
-    ARCHITECTURE:
-    transcript + OCR
-        ↓
-    semantic retrieval
-        ↓
-    policy grounding
-        ↓
-    LLM reasoning
-        ↓
-    structured compliance output
     """
 
     logger.info(
@@ -225,7 +170,6 @@ def audit_content_node(
 
         return {
             "final_status": "FAIL",
-
             "final_report":
             "Audit skipped because video "
             "processing failed (No Transcript)."
@@ -234,38 +178,16 @@ def audit_content_node(
     # =====================================================
     # RETRIEVAL PROVIDER
     # =====================================================
-    """
-    Initialize retrieval provider.
-
-    IMPORTANT:
-    The Auditor Node no longer directly depends on:
-    - AzureSearch
-    - embeddings
-    - vector database infrastructure
-
-    It now depends on an abstract retrieval service.
-    """
-
-    """
-    Select retrieval provider.
-
-    Supported Providers:
-
-    azure:
-        Azure AI Search
-        + Azure Embeddings
-
-    local:
-        Qdrant
-        + Sentence Transformers
-    """
-
     retrieval_provider = os.getenv(
         "RETRIEVAL_PROVIDER",
         "local"
     ).lower()
 
     if retrieval_provider == "azure":
+
+        from backend.src.services.retrieval.azure_retrieval import (
+            AzureRetrievalService
+        )
 
         logger.info(
             "[Retrieval] Using Azure Provider"
@@ -276,6 +198,10 @@ def audit_content_node(
         )
 
     else:
+
+        from backend.src.services.retrieval.local_retrieval import (
+            LocalRetrievalService
+        )
 
         logger.info(
             "[Retrieval] Using Local Provider"
@@ -288,14 +214,6 @@ def audit_content_node(
     # =====================================================
     # BUILD RETRIEVAL QUERY
     # =====================================================
-    """
-    Combine:
-    - transcript
-    - OCR text
-
-    into a unified semantic query.
-    """
-
     ocr_text = state.get(
         "ocr_text",
         []
@@ -309,16 +227,6 @@ def audit_content_node(
     # =====================================================
     # RETRIEVE POLICY DOCUMENTS
     # =====================================================
-    """
-    Retrieve the most relevant policy chunks.
-
-    FUTURE PROVIDERS:
-    - Qdrant
-    - FAISS
-    - Hybrid Retrieval
-    - BM25 + Vector Search
-    """
-
     retrieved_docs = (
         retrieval_service.retrieve_rules(
             query=query_text,
@@ -336,37 +244,16 @@ def audit_content_node(
     # =====================================================
     # LLM PROVIDER
     # =====================================================
-    """
-    Initialize LLM provider.
-
-    IMPORTANT:
-    The Auditor Node no longer directly depends on:
-    - AzureChatOpenAI
-    - prompt execution
-    - JSON parsing
-    - response formatting
-
-    It now depends on an abstract LLM service.
-    """
-
-    """
-    Select LLM provider.
-
-    Supported Providers:
-
-    azure:
-        Azure OpenAI
-
-    groq:
-        Groq API
-    """
-
     llm_provider = os.getenv(
         "LLM_PROVIDER",
         "groq"
     ).lower()
 
     if llm_provider == "azure":
+
+        from backend.src.services.llm.azure_llm import (
+            AzureLLMService
+        )
 
         logger.info(
             "[LLM] Using Azure Provider"
@@ -377,6 +264,10 @@ def audit_content_node(
         )
 
     else:
+
+        from backend.src.services.llm.groq_llm import (
+            GroqLLMService
+        )
 
         logger.info(
             "[LLM] Using Groq Provider"
@@ -389,14 +280,6 @@ def audit_content_node(
     # =====================================================
     # EXECUTE COMPLIANCE REASONING
     # =====================================================
-    """
-    The provider is responsible for:
-    - prompt construction
-    - reasoning execution
-    - structured parsing
-    - normalization
-    """
-
     return llm_service.audit_content(
         transcript=transcript,
 
