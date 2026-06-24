@@ -48,20 +48,15 @@ def get_whisper_model():
 
     if _whisper_model is None:
 
-        logger.info(
-            "[Whisper] Loading Faster-Whisper model..."
-        )
+        logger.info("[Whisper] BEFORE MODEL LOAD")
 
         _whisper_model = WhisperModel(
-            model_size_or_path="base",
+            model_size_or_path="tiny",
             device="cpu",
             compute_type="int8"
         )
 
-        logger.info(
-            "[Whisper] Model loaded successfully"
-        )
-
+        logger.info("[Whisper] AFTER MODEL LOAD")
     return _whisper_model
 
 
