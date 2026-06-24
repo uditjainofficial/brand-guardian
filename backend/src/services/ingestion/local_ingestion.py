@@ -80,143 +80,44 @@ class LocalIngestionService(BaseIngestionService):
         video_id: str
     ) -> Dict[str, Any]:
         """
-        Execute local ingestion workflow.
+        TEMPORARY DEBUG VERSION
+
+        Bypasses:
+        - YouTube download
+        - Whisper
+        - Frame extraction
+        - OCR
+
+        Goal:
+        Verify Retrieval + Qdrant + Groq
+        work correctly on Render.
         """
 
         logger.info(
-            f"[Local Ingestion] Processing: {video_url}"
+            f"[Local Ingestion] MOCK MODE: {video_url}"
         )
 
-        local_video_path = "temp_audit_video.mp4"
+        return {
+            "transcript": """
+            This video is sponsored by BrandX.
 
-        frame_dir = "temp_frames"
+            Use my affiliate link below.
 
-        try:
+            Guaranteed results in 30 days.
 
-            # =================================================
-            # STEP 1 — DOWNLOAD VIDEO
-            # =================================================
+            Click the link in the description
+            to purchase now.
+            """,
 
-            if (
-                "youtube.com" in video_url
-                or "youtu.be" in video_url
-            ):
+            "ocr_text": [
+                "Sponsored",
+                "Affiliate Link",
+                "Guaranteed Results",
+                "Limited Time Offer"
+            ],
 
-                local_path = (
-                    self.video_downloader
-                    .download_youtube_video(
-                        video_url,
-                        output_path=local_video_path
-                    )
-                )
-
-            else:
-                raise Exception(
-                    "Only YouTube URLs are supported."
-                )
-
-            # =================================================
-            # STEP 2 — TRANSCRIPTION
-            # =================================================
-
-            transcript = self.transcriber.transcribe(
-                local_path
-            )
-
-            # =================================================
-            # STEP 3 — FRAME EXTRACTION
-            # =================================================
-
-            frame_paths = (
-                self.frame_extractor.extract_frames(
-                    local_path,
-                    output_dir=frame_dir,
-                    frame_interval=90
-                )
-            )
-
-            # =================================================
-            # STEP 4 — OCR PROCESSING
-            # =================================================
-
-            ocr_text = self.ocr_engine.extract_text(
-                frame_paths
-            )
-
-            logger.info(
-                "[Local Ingestion] Complete"
-            )
-
-            # =================================================
-            # STEP 5 — NORMALIZED OUTPUT
-            # =================================================
-
-            return {
-                "transcript": transcript,
-
-                "ocr_text": ocr_text,
-
-                "video_metadata": {
-                    "platform": "youtube",
-                    "ingestion_mode": "local"
-                }
+            "video_metadata": {
+                "platform": "youtube",
+                "ingestion_mode": "mock"
             }
-
-        except Exception as e:
-
-            logger.error(
-                f"Local Ingestion Failed: {e}"
-            )
-
-            return {
-                "errors": [str(e)],
-                "final_status": "FAIL",
-                "transcript": "",
-                "ocr_text": [],
-                "video_metadata": {}
-            }
-
-        finally:
-
-            # =================================================
-            # GUARANTEED CLEANUP
-            # =================================================
-            #
-            # Runs on:
-            # - success
-            # - exception
-            # - early return
-            #
-            # Prevents accumulation of:
-            # - temp_audit_video.mp4
-            # - extracted frames
-            #
-            # =================================================
-
-            try:
-
-                if os.path.exists(local_video_path):
-
-                    logger.info(
-                        "[Cleanup] Removing temporary video"
-                    )
-
-                    os.remove(local_video_path)
-
-                if os.path.exists(frame_dir):
-
-                    logger.info(
-                        "[Cleanup] Removing temporary frames"
-                    )
-
-                    shutil.rmtree(
-                        frame_dir,
-                        ignore_errors=True
-                    )
-
-            except Exception as cleanup_error:
-
-                logger.warning(
-                    f"[Cleanup] Failed: "
-                    f"{cleanup_error}"
-                )
+        }
