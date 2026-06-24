@@ -64,15 +64,23 @@ class LocalIngestionService(BaseIngestionService):
         Initialize ingestion components.
         """
 
-        # Reuse existing stable YouTube downloader.
+        logger.info("STEP 1")
+
         self.video_downloader = VideoIndexerService()
 
-        # Local AI inference engines.
+        logger.info("STEP 2")
+
         self.transcriber = WhisperTranscriber()
+
+        logger.info("STEP 3")
 
         self.frame_extractor = FrameExtractor()
 
+        logger.info("STEP 4")
+
         self.ocr_engine = OCREngine()
+
+        logger.info("STEP 5")
 
     def process_video(
         self,
