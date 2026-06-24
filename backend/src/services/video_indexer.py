@@ -7,7 +7,10 @@ import time
 import logging
 import requests
 import yt_dlp  
-from azure.identity import DefaultAzureCredential
+try:
+    from azure.identity import DefaultAzureCredential
+except ImportError:
+    DefaultAzureCredential = None
 
 logger = logging.getLogger("video-indexer")
 
@@ -18,7 +21,11 @@ class VideoIndexerService:
         self.subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
         self.resource_group = os.getenv("AZURE_RESOURCE_GROUP")
         self.vi_name = os.getenv("AZURE_VI_NAME", "bg-video-udit01")
-        self.credential = DefaultAzureCredential()
+        self.credential = (
+            DefaultAzureCredential()
+            if DefaultAzureCredential
+            else None
+        )
 
     def get_access_token(self):
         """Generates an ARM Access Token."""
